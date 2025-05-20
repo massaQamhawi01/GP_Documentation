@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the sendViolationNotification method from the PushNotificationService class, for the Dart programming language.">
+  <title>sendViolationNotification method - PushNotificationService class - PushNotificationService library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">gp2</a></li>
+    <li><a href="../../services_PushNotificationService">services\PushNotificationService.dart</a></li>
+    <li><a href="../../services_PushNotificationService/PushNotificationService-class.html">PushNotificationService</a></li>
+    <li class="self-crumb">sendViolationNotification method</li>
+  </ol>
+  <div class="self-name">sendViolationNotification</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <div class="toggle" id="theme-button" title="Toggle brightness">
+    <label for="theme">
+      <input type="checkbox" id="theme" value="light-theme">
+      <span id="dark-theme-button" class="material-symbols-outlined">
+        dark_mode
+      </span>
+      <span id="light-theme-button" class="material-symbols-outlined">
+        light_mode
+      </span>
+    </label>
+  </div>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="services_PushNotificationService&#47;PushNotificationService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">sendViolationNotification</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/flutter_test/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter">void</span>&gt;</span></span>
+<span class="name ">sendViolationNotification</span>(<wbr><ol class="parameter-list single-line"> <li><span class="parameter" id="sendViolationNotification-param-vehicleID"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">vehicleID</span>, </span></li>
+<li><span class="parameter" id="sendViolationNotification-param-licensePlate"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">licensePlate</span>, </span></li>
+<li><span class="parameter" id="sendViolationNotification-param-violationType"><span class="type-annotation"><a href="https://api.flutter.dev/flutter/dart-core/String-class.html">String</a></span> <span class="parameter-name">violationType</span></span></li>
+</ol>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;void&gt; sendViolationNotification(String vehicleID, String licensePlate, String violationType) async {
+  try {
+    &#47;&#47; Step 1: Get user information based on vehicle
+    final userInfo = await _vehicleService.getCarOwnerInfo(licensePlate);
+
+    if (userInfo == null) {
+      print(&#39;Cannot send notification: No user found for vehicle $vehicleID ($licensePlate)&#39;);
+      return;
+    }
+
+    &#47;&#47; Step 2: Get FCM token for the user
+    final userID = userInfo.userID;
+    final tokenDoc = await _firestore.collection(&#39;fcm_tokens&#39;).doc(userID).get();
+
+    if (!tokenDoc.exists) {
+      print(&#39;Cannot send notification: No FCM token found for user $userID&#39;);
+      return;
+    }
+
+    final tokenData = tokenDoc.data()!;
+    final fcmToken = tokenData[&#39;token&#39;] as String?;
+
+    &#47;&#47; Check if token is active (new)
+    final isActive = tokenData[&#39;active&#39;] as bool? ?? true; &#47;&#47; Default to true for backward compatibility
+
+    if (fcmToken == null || fcmToken.isEmpty) {
+      print(&#39;Cannot send notification: Invalid FCM token for user $userID&#39;);
+      return;
+    }
+
+    &#47;&#47; Skip if token is inactive (new)
+    if (!isActive) {
+      print(&#39;Cannot send notification: Token for user $userID is inactive&#39;);
+      return;
+    }
+
+    &#47;&#47; Step 3: Prepare notification payload
+    final notificationData = {
+      &#39;to&#39;: fcmToken,
+      &#39;notification&#39;: {
+        &#39;title&#39;: &#39;Parking Violation Notice&#39;,
+        &#39;body&#39;: &#39;Your vehicle ($licensePlate) has been reported for a violation of type &quot;$violationType&quot;.&#39;
+      },
+      &#39;data&#39;: {
+        &#39;type&#39;: &#39;violation&#39;,
+        &#39;licensePlate&#39;: licensePlate,
+        &#39;violationType&#39;: violationType,
+        &#39;vehicleID&#39;: vehicleID,
+        &#39;timestamp&#39;: DateTime.now().millisecondsSinceEpoch.toString()
+      }
+    };
+
+    &#47;&#47; Step 4: Send notification using Firebase Admin SDK via Cloud Function
+    await _firestore.collection(&#39;notification_queue&#39;).add({
+      &#39;token&#39;: fcmToken,
+      &#39;userId&#39;: userID,
+      &#39;notification&#39;: notificationData,
+      &#39;createdAt&#39;: FieldValue.serverTimestamp(),
+      &#39;status&#39;: &#39;pending&#39;
+    });
+
+    &#47;&#47; Step 5: Log notification for tracking
+    await _firestore.collection(&#39;notification_logs&#39;).add({
+      &#39;userId&#39;: userID,
+      &#39;vehicleId&#39;: vehicleID,
+      &#39;licensePlate&#39;: licensePlate,
+      &#39;violationType&#39;: violationType,
+      &#39;sentAt&#39;: FieldValue.serverTimestamp(),
+      &#39;status&#39;: &#39;sent&#39;
+    });
+
+  } catch (e) {
+    print(&#39;Error sending violation notification: $e&#39;);
+    throw Exception(&#39;Failed to send notification: $e&#39;);
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">gp2</a></li>
+    <li><a href="../../services_PushNotificationService">PushNotificationService</a></li>
+    <li><a href="../../services_PushNotificationService/PushNotificationService-class.html">PushNotificationService</a></li>
+    <li class="self-crumb">sendViolationNotification method</li>
+</ol>
+
+    <h5>PushNotificationService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    gp2
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+

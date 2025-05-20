@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+  <meta name="description" content="API docs for the getAllEvents method from the EventService class, for the Dart programming language.">
+  <title>getAllEvents method - EventService class - EventService library - Dart API</title>
+
+
+  
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  
+  <link rel="stylesheet" href="../../static-assets/github.css?v1">
+  <link rel="stylesheet" href="../../static-assets/styles.css?v1">
+  <link rel="icon" href="../../static-assets/favicon.png?v1">
+  
+</head>
+
+<body data-base-href="../../" data-using-base-href="false" class="light-theme">
+<div id="overlay-under-drawer"></div>
+<header id="title">
+  <span id="sidenav-left-toggle" class="material-symbols-outlined" role="button" tabindex="0">menu</span>
+  <ol class="breadcrumbs gt-separated dark hidden-xs">
+    <li><a href="../../index.html">gp2</a></li>
+    <li><a href="../../services_EventService">services\EventService.dart</a></li>
+    <li><a href="../../services_EventService/EventService-class.html">EventService</a></li>
+    <li class="self-crumb">getAllEvents method</li>
+  </ol>
+  <div class="self-name">getAllEvents</div>
+  <form class="search navbar-right" role="search">
+    <input type="text" id="search-box" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+  <div class="toggle" id="theme-button" title="Toggle brightness">
+    <label for="theme">
+      <input type="checkbox" id="theme" value="light-theme">
+      <span id="dark-theme-button" class="material-symbols-outlined">
+        dark_mode
+      </span>
+      <span id="light-theme-button" class="material-symbols-outlined">
+        light_mode
+      </span>
+    </label>
+  </div>
+</header>
+<main>
+<div
+    id="dartdoc-main-content"
+    class="main-content"
+    data-above-sidebar="services_EventService&#47;EventService-class-sidebar.html"
+    data-below-sidebar="">
+    <div>
+<h1><span class="kind-method">getAllEvents</span> method 
+</h1></div>
+
+    <section class="multi-line-signature">
+      
+<span class="returntype"><a href="https://api.flutter.dev/flutter/flutter_test/Future-class.html">Future</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="https://api.flutter.dev/flutter/dart-core/List-class.html">List</a><span class="signature">&lt;<wbr><span class="type-parameter"><a href="../../classes_event/Event-class.html">Event</a></span>&gt;</span></span>&gt;</span></span>
+<span class="name ">getAllEvents</span>(<wbr>)
+
+      
+
+    </section>
+    
+
+
+    
+<section class="summary source-code" id="source">
+  <h2><span>Implementation</span></h2>
+  <pre class="language-dart"><code class="language-dart">Future&lt;List&lt;Event&gt;&gt; getAllEvents() async {
+  try {
+    &#47;&#47; Get current date (start of today)
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    &#47;&#47; Get all events
+    QuerySnapshot snapshot = await _firestore.collection(&#39;event&#39;).get();
+
+    &#47;&#47; Filter events for deletion (past events)
+    List&lt;DocumentSnapshot&gt; pastEventDocs = [];
+    List&lt;Event&gt; currentEvents = [];
+
+    for (var doc in snapshot.docs) {
+      Event event = Event.fromFirestore(doc);
+      if (event.date.isBefore(today)) {
+        &#47;&#47; Add to deletion list
+        pastEventDocs.add(doc);
+      } else {
+        &#47;&#47; Keep current and future events
+        currentEvents.add(event);
+      }
+    }
+
+    &#47;&#47; Delete past events using batch
+    if (pastEventDocs.isNotEmpty) {
+      final batch = _firestore.batch();
+      for (var doc in pastEventDocs) {
+        batch.delete(doc.reference);
+      }
+      await batch.commit();
+      print(&#39;Deleted ${pastEventDocs.length} past events&#39;);
+    }
+
+    &#47;&#47; Sort events by date (closest to furthest)
+    currentEvents.sort((a, b) =&gt; a.date.compareTo(b.date));
+
+    return currentEvents;
+  } catch(e) {
+    print(&#39;something went wrong: ${e.toString()}&#39;);
+    print(&#39;error fetching all events&#39;);
+    return [];
+  }
+}</code></pre>
+</section>
+
+
+  </div> <!-- /.main-content -->
+  <div id="dartdoc-sidebar-left" class="sidebar sidebar-offcanvas-left">
+    <!-- The search input and breadcrumbs below are only responsively visible at low resolutions. -->
+<header id="header-search-sidebar" class="hidden-l">
+  <form class="search-sidebar" role="search">
+    <input type="text" id="search-sidebar" autocomplete="off" disabled class="form-control typeahead" placeholder="Loading search...">
+  </form>
+</header>
+<ol class="breadcrumbs gt-separated dark hidden-l" id="sidebar-nav">
+    <li><a href="../../index.html">gp2</a></li>
+    <li><a href="../../services_EventService">EventService</a></li>
+    <li><a href="../../services_EventService/EventService-class.html">EventService</a></li>
+    <li class="self-crumb">getAllEvents method</li>
+</ol>
+
+    <h5>EventService class</h5>
+    <div id="dartdoc-sidebar-left-content"></div>
+  </div><!--/.sidebar-offcanvas-->
+  <div id="dartdoc-sidebar-right" class="sidebar sidebar-offcanvas-right">
+</div><!--/.sidebar-offcanvas-->
+</main>
+<footer>
+  <span class="no-break">
+    gp2
+      1.0.0+1
+  </span>
+  
+</footer>
+
+
+<script src="../../static-assets/highlight.pack.js?v1"></script>
+<script src="../../static-assets/docs.dart.js"></script>
+
+</body>
+</html>
+
