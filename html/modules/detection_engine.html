@@ -1,0 +1,912 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detection Engine &mdash; CampuSpot 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Merge Results" href="merge_results.html" />
+    <link rel="prev" title="Welcome to Vehicle Detection System’s documentation!" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CampuSpot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Detection Engine</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.FirestoreManager"><code class="docutils literal notranslate"><span class="pre">FirestoreManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.FirestoreManager.db"><code class="docutils literal notranslate"><span class="pre">FirestoreManager.db</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.FirestoreManager.violation_exists"><code class="docutils literal notranslate"><span class="pre">FirestoreManager.violation_exists()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.FirestoreManager.get_user_by_license_plate"><code class="docutils literal notranslate"><span class="pre">FirestoreManager.get_user_by_license_plate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.VehicleDetector"><code class="docutils literal notranslate"><span class="pre">VehicleDetector</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.VEHICLE_CLASSES"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.VEHICLE_CLASSES</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.VEHICLE_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.VEHICLE_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.LP_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.LP_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.LEGAL_SPOT_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.LEGAL_SPOT_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.ILLEGAL_SPOT_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.ILLEGAL_SPOT_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.DOUBLE_PARKING_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.DOUBLE_PARKING_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.UNAUTHORIZED_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.UNAUTHORIZED_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.NON_FACULTY_COLOR"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.NON_FACULTY_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.API_KEY"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.API_KEY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.MAX_UPLOAD"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.MAX_UPLOAD</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.MAX_RPS"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.MAX_RPS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.KNOWN_WIDTH"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.KNOWN_WIDTH</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.FOCAL_LENGTH"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.FOCAL_LENGTH</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.firestore_manager"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.firestore_manager</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.firestore_enabled"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.firestore_enabled</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.device"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.device</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.model"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.model</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.VEHICLE_CLASSES</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id1"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.VEHICLE_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.LP_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id3"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.LEGAL_SPOT_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id4"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.ILLEGAL_SPOT_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id5"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.DOUBLE_PARKING_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id6"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.UNAUTHORIZED_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id7"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.NON_FACULTY_COLOR</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id8"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.API_KEY</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id9"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.MAX_UPLOAD</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id10"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.MAX_RPS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id11"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.KNOWN_WIDTH</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id12"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.FOCAL_LENGTH</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.get_car_mid_bottom"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.get_car_mid_bottom()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.is_point_right_of_line"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.is_point_right_of_line()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.is_point_left_of_line"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.is_point_left_of_line()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.calculate_iou"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.calculate_iou()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.detect_vehicles"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.detect_vehicles()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.check_user_violation"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.check_user_violation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.detect_firestore_violations"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.detect_firestore_violations()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.process_image"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.process_image()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.load_parking_spots"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.load_parking_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.match_cars_to_parking_spots"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.match_cars_to_parking_spots()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.detect_double_parking"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.detect_double_parking()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.detect_illegal_cars"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.detect_illegal_cars()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection_engine.VehicleDetector.analyze_parking"><code class="docutils literal notranslate"><span class="pre">VehicleDetector.analyze_parking()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.detect_vehicles"><code class="docutils literal notranslate"><span class="pre">detect_vehicles()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.get_parking_spots"><code class="docutils literal notranslate"><span class="pre">get_parking_spots()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.serve_static"><code class="docutils literal notranslate"><span class="pre">serve_static()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detection_engine.run_standalone"><code class="docutils literal notranslate"><span class="pre">run_standalone()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="merge_results.html">Merge Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server.html">Server</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CampuSpot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Detection Engine</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/modules/detection_engine.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="detection-engine">
+<h1>Detection Engine<a class="headerlink" href="#detection-engine" title="Link to this heading"></a></h1>
+<dl class="py class" id="module-detection_engine">
+<dt class="sig sig-object py" id="detection_engine.FirestoreManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">FirestoreManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">service_account_key_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#FirestoreManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.FirestoreManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages interactions with Firestore database for vehicle detection system.</p>
+<p>This class handles all database operations including querying vehicle information,
+checking for existing violations, and retrieving user data associated with
+license plates.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.FirestoreManager.db">
+<span class="sig-name descname"><span class="pre">db</span></span><a class="headerlink" href="#detection_engine.FirestoreManager.db" title="Link to this definition"></a></dt>
+<dd><p>Firestore database client instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>firestore.Client</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If Firestore connection cannot be established</p>
+</dd>
+</dl>
+<p>Initialize the Firestore manager with service account credentials.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>service_account_key_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>optional</em>) – Path to the service account key file.
+Defaults to None, in which case it’s read from environment variable.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If Firestore connection cannot be established</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.FirestoreManager.violation_exists">
+<span class="sig-name descname"><span class="pre">violation_exists</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">license_plate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#FirestoreManager.violation_exists"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.FirestoreManager.violation_exists" title="Link to this definition"></a></dt>
+<dd><p>Check if a violation record exists for the given license plate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>license_plate</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The license plate to check</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if a violation already exists, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If there’s an error querying Firestore</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.FirestoreManager.get_user_by_license_plate">
+<span class="sig-name descname"><span class="pre">get_user_by_license_plate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">license_plate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#FirestoreManager.get_user_by_license_plate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.FirestoreManager.get_user_by_license_plate" title="Link to this definition"></a></dt>
+<dd><p>Retrieve user information associated with a license plate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>license_plate</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – The license plate to query</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>User information dictionary if found,</dt><dd><p>including user ID, role, name, email and vehicle data.
+Returns None if no matching user is found.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>, Any]]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If there’s an error querying Firestore</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">VehicleDetector</span></span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Main class for vehicle detection, license plate recognition, and parking analysis.</p>
+<p>This class handles vehicle detection using YOLO models, license plate recognition
+using PlateRecognizer API, matching vehicles to parking spots, and detecting
+various parking violations.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.VEHICLE_CLASSES">
+<span class="sig-name descname"><span class="pre">VEHICLE_CLASSES</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.VEHICLE_CLASSES" title="Link to this definition"></a></dt>
+<dd><p>Mapping of YOLO class IDs to vehicle types</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.VEHICLE_COLOR">
+<span class="sig-name descname"><span class="pre">VEHICLE_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.VEHICLE_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for vehicle bounding boxes</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.LP_COLOR">
+<span class="sig-name descname"><span class="pre">LP_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.LP_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for license plate information</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.LEGAL_SPOT_COLOR">
+<span class="sig-name descname"><span class="pre">LEGAL_SPOT_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.LEGAL_SPOT_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for legal parking spots</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.ILLEGAL_SPOT_COLOR">
+<span class="sig-name descname"><span class="pre">ILLEGAL_SPOT_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.ILLEGAL_SPOT_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for illegal parking violations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.DOUBLE_PARKING_COLOR">
+<span class="sig-name descname"><span class="pre">DOUBLE_PARKING_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.DOUBLE_PARKING_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for double parking violations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.UNAUTHORIZED_COLOR">
+<span class="sig-name descname"><span class="pre">UNAUTHORIZED_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.UNAUTHORIZED_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for unauthorized vehicle violations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.NON_FACULTY_COLOR">
+<span class="sig-name descname"><span class="pre">NON_FACULTY_COLOR</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.NON_FACULTY_COLOR" title="Link to this definition"></a></dt>
+<dd><p>RGB color for non-faculty in faculty spot violations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.API_KEY">
+<span class="sig-name descname"><span class="pre">API_KEY</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.API_KEY" title="Link to this definition"></a></dt>
+<dd><p>API key for PlateRecognizer service</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.MAX_UPLOAD">
+<span class="sig-name descname"><span class="pre">MAX_UPLOAD</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.MAX_UPLOAD" title="Link to this definition"></a></dt>
+<dd><p>Maximum byte size for image uploads to PlateRecognizer API</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.MAX_RPS">
+<span class="sig-name descname"><span class="pre">MAX_RPS</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.MAX_RPS" title="Link to this definition"></a></dt>
+<dd><p>Maximum requests per second allowed by PlateRecognizer API</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.KNOWN_WIDTH">
+<span class="sig-name descname"><span class="pre">KNOWN_WIDTH</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.KNOWN_WIDTH" title="Link to this definition"></a></dt>
+<dd><p>Estimated real-world width of a typical car in meters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.FOCAL_LENGTH">
+<span class="sig-name descname"><span class="pre">FOCAL_LENGTH</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.FOCAL_LENGTH" title="Link to this definition"></a></dt>
+<dd><p>Focal length used for estimating vehicle distance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.firestore_manager">
+<span class="sig-name descname"><span class="pre">firestore_manager</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.firestore_manager" title="Link to this definition"></a></dt>
+<dd><p>Manager for Firestore database operations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#detection_engine.FirestoreManager" title="detection_engine.FirestoreManager">FirestoreManager</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.firestore_enabled">
+<span class="sig-name descname"><span class="pre">firestore_enabled</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.firestore_enabled" title="Link to this definition"></a></dt>
+<dd><p>Whether Firestore functionality is available</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.device">
+<span class="sig-name descname"><span class="pre">device</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.device" title="Link to this definition"></a></dt>
+<dd><p>Device used for model inference (‘cuda’ or ‘cpu’)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.model">
+<span class="sig-name descname"><span class="pre">model</span></span><a class="headerlink" href="#detection_engine.VehicleDetector.model" title="Link to this definition"></a></dt>
+<dd><p>YOLO model instance for vehicle detection</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>YOLO</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>Initialize the VehicleDetector with Firestore and YOLO model.</p>
+<p>Sets up Firestore connection and loads the appropriate YOLO model
+based on availability. Initializes tracking for API rate limiting.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">VEHICLE_CLASSES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{1:</span> <span class="pre">'Bicycle',</span> <span class="pre">2:</span> <span class="pre">'Car',</span> <span class="pre">3:</span> <span class="pre">'Motorcycle',</span> <span class="pre">5:</span> <span class="pre">'Bus',</span> <span class="pre">7:</span> <span class="pre">'Truck',</span> <span class="pre">8:</span> <span class="pre">'Boat'}</span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">VEHICLE_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">255)</span></em><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">LP_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,</span> <span class="pre">255,</span> <span class="pre">0)</span></em><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id3">
+<span class="sig-name descname"><span class="pre">LEGAL_SPOT_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,</span> <span class="pre">255,</span> <span class="pre">0)</span></em><a class="headerlink" href="#id3" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id4">
+<span class="sig-name descname"><span class="pre">ILLEGAL_SPOT_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(0,</span> <span class="pre">0,</span> <span class="pre">255)</span></em><a class="headerlink" href="#id4" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id5">
+<span class="sig-name descname"><span class="pre">DOUBLE_PARKING_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(255,</span> <span class="pre">0,</span> <span class="pre">255)</span></em><a class="headerlink" href="#id5" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id6">
+<span class="sig-name descname"><span class="pre">UNAUTHORIZED_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(255,</span> <span class="pre">0,</span> <span class="pre">0)</span></em><a class="headerlink" href="#id6" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id7">
+<span class="sig-name descname"><span class="pre">NON_FACULTY_COLOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">(255,</span> <span class="pre">128,</span> <span class="pre">0)</span></em><a class="headerlink" href="#id7" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id8">
+<span class="sig-name descname"><span class="pre">API_KEY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'115d42004ef9242bd55a3eb2648a884a5eddcf07'</span></em><a class="headerlink" href="#id8" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id9">
+<span class="sig-name descname"><span class="pre">MAX_UPLOAD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3145728</span></em><a class="headerlink" href="#id9" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id10">
+<span class="sig-name descname"><span class="pre">MAX_RPS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#id10" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id11">
+<span class="sig-name descname"><span class="pre">KNOWN_WIDTH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1.8</span></em><a class="headerlink" href="#id11" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id12">
+<span class="sig-name descname"><span class="pre">FOCAL_LENGTH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1000</span></em><a class="headerlink" href="#id12" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.get_car_mid_bottom">
+<span class="sig-name descname"><span class="pre">get_car_mid_bottom</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">margin</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.get_car_mid_bottom"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.get_car_mid_bottom" title="Link to this definition"></a></dt>
+<dd><p>Get the coordinates of a point at the middle bottom of a bounding box.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>box</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Bounding box coordinates [x1, y1, x2, y2]</p></li>
+<li><p><strong>margin</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Additional margin to add below the box. Defaults to 5.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>(x, y) coordinates of the mid-bottom point</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.is_point_right_of_line">
+<span class="sig-name descname"><span class="pre">is_point_right_of_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.is_point_right_of_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.is_point_right_of_line" title="Link to this definition"></a></dt>
+<dd><p>Determine if a point is to the right of a line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Point coordinates (px, py)</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – First line endpoint (ax, ay)</p></li>
+<li><p><strong>b</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Second line endpoint (bx, by)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the point is to the right of the line, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.is_point_left_of_line">
+<span class="sig-name descname"><span class="pre">is_point_left_of_line</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.is_point_left_of_line"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.is_point_left_of_line" title="Link to this definition"></a></dt>
+<dd><p>Determine if a point is to the left of a line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Point coordinates (px, py)</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – First line endpoint (ax, ay)</p></li>
+<li><p><strong>b</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a>) – Second line endpoint (bx, by)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the point is to the left of the line, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.calculate_iou">
+<span class="sig-name descname"><span class="pre">calculate_iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.calculate_iou"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.calculate_iou" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Intersection over Union (IoU) of two bounding boxes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>box1</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – First bounding box coordinates [x1, y1, x2, y2]</p></li>
+<li><p><strong>box2</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – Second bounding box coordinates [x1, y1, x2, y2]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>IoU value between 0 and 1</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.detect_vehicles">
+<span class="sig-name descname"><span class="pre">detect_vehicles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.detect_vehicles"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.detect_vehicles" title="Link to this definition"></a></dt>
+<dd><p>Detect vehicles in an image using YOLOv8 model.</p>
+<p>Runs the YOLO model with two different configurations to maximize
+detection accuracy, then merges the results while avoiding duplicates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>image</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – Input image</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Three lists containing:</dt><dd><ul class="simple">
+<li><p>Bounding boxes of detected vehicles [x1, y1, x2, y2]</p></li>
+<li><p>Confidence scores</p></li>
+<li><p>Class IDs of detected vehicles</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)">tuple</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.check_user_violation">
+<span class="sig-name descname"><span class="pre">check_user_violation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">license_plate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.check_user_violation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.check_user_violation" title="Link to this definition"></a></dt>
+<dd><p>Check if a vehicle is violating parking rules based on user role.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>license_plate</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – License plate of the vehicle</p></li>
+<li><p><strong>spot_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – Parking spot ID where the vehicle is parked</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Violation type if a violation is detected, None otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.detect_firestore_violations">
+<span class="sig-name descname"><span class="pre">detect_firestore_violations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vehicles</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spot_map</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.detect_firestore_violations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.detect_firestore_violations" title="Link to this definition"></a></dt>
+<dd><p>Detect parking violations based on user roles and parking spots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>vehicles</strong> (<em>List</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>, </em><em>Any</em><em>]</em><em>]</em>) – List of detected vehicles with their data</p></li>
+<li><p><strong>spot_map</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>]</em>) – Mapping of vehicle IDs to parking spot IDs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Two lists containing:</dt><dd><ul class="simple">
+<li><p>Unauthorized vehicles</p></li>
+<li><p>Non-faculty vehicles parked in faculty spots</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[List[Dict], List[Dict]]</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><strong>Exception</strong></a> – If there’s an error checking violations in Firestore</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.process_image">
+<span class="sig-name descname"><span class="pre">process_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parking_data_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">regions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">('jo',)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.process_image"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.process_image" title="Link to this definition"></a></dt>
+<dd><p>Process an image for vehicle detection and parking analysis.</p>
+<p>This is the main entry point for the detection pipeline, which:
+1. Detects vehicles in the image
+2. Recognizes license plates
+3. Performs parking spot analysis if parking data is provided
+4. Detects parking violations
+5. Creates an annotated output image</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the input image</p></li>
+<li><p><strong>parking_data_path</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a><em>]</em><em>, </em><em>optional</em>) – Path to parking spot data JSON file.
+Defaults to None.</p></li>
+<li><p><strong>regions</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><em>tuple</em></a><em>, </em><em>optional</em>) – License plate region codes. Defaults to (“jo”,).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Results dictionary containing:</dt><dd><ul class="simple">
+<li><p>Detected vehicles with their information</p></li>
+<li><p>Parking analysis results (if applicable)</p></li>
+<li><p>Path to the output image</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.13)"><strong>FileNotFoundError</strong></a> – If the input image cannot be read</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.load_parking_spots">
+<span class="sig-name descname"><span class="pre">load_parking_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.load_parking_spots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.load_parking_spots" title="Link to this definition"></a></dt>
+<dd><p>Load parking spot data from a JSON file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the JSON file containing parking spot data</p></li>
+<li><p><strong>camera_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Camera ID to filter spots for the specific camera view</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of parking spots with their polygons and metadata</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.match_cars_to_parking_spots">
+<span class="sig-name descname"><span class="pre">match_cars_to_parking_spots</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">car_boxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parking_spots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_threshold</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.match_cars_to_parking_spots"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.match_cars_to_parking_spots" title="Link to this definition"></a></dt>
+<dd><p>Match detected vehicles to parking spots.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>car_boxes</strong> (<em>List</em>) – List of vehicle bounding boxes</p></li>
+<li><p><strong>parking_spots</strong> (<em>List</em><em>[</em><em>Dict</em><em>]</em>) – List of parking spots</p></li>
+<li><p><strong>column_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Maximum horizontal distance for matching</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>List of matches (car to spot)</p></li>
+<li><p>List of free (unoccupied) spot IDs</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[List[Dict], List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)">int</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.detect_double_parking">
+<span class="sig-name descname"><span class="pre">detect_double_parking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">car_boxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">matches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parking_spots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">leak_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.detect_double_parking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.detect_double_parking" title="Link to this definition"></a></dt>
+<dd><p>Detect double parking violations.</p>
+<p>A double parking violation occurs when a car assigned to one spot
+significantly overlaps with a neighboring spot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>car_boxes</strong> (<em>List</em>) – List of vehicle bounding boxes</p></li>
+<li><p><strong>matches</strong> (<em>List</em><em>[</em><em>Dict</em><em>]</em>) – List of car-to-spot matches</p></li>
+<li><p><strong>parking_spots</strong> (<em>List</em><em>[</em><em>Dict</em><em>]</em>) – List of parking spots</p></li>
+<li><p><strong>leak_threshold</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><em>float</em></a><em>, </em><em>optional</em>) – Minimum overlap ratio to consider
+as double parking. Defaults to 0.1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of double parking violations</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.detect_illegal_cars">
+<span class="sig-name descname"><span class="pre">detect_illegal_cars</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">car_boxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parking_spots</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cam_num</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_px</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.detect_illegal_cars"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.detect_illegal_cars" title="Link to this definition"></a></dt>
+<dd><p>Detect vehicles parked in illegal areas.</p>
+<p>Uses camera-specific logic to determine if a car is parked in a non-parking area.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>car_boxes</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of vehicle bounding boxes</p></li>
+<li><p><strong>parking_spots</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)"><em>list</em></a>) – List of parking spots</p></li>
+<li><p><strong>cam_num</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Camera ID</p></li>
+<li><p><strong>buffer_px</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a><em>, </em><em>optional</em>) – Buffer around parking spots in pixels. Defaults to 10.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of illegally parked vehicles</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.13)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="detection_engine.VehicleDetector.analyze_parking">
+<span class="sig-name descname"><span class="pre">analyze_parking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">car_boxes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parking_data_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">camera_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#VehicleDetector.analyze_parking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.VehicleDetector.analyze_parking" title="Link to this definition"></a></dt>
+<dd><p>Analyze parking spots and detect violations.</p>
+<p>This method performs a complete parking analysis:
+1. Loads parking spot data
+2. Detects illegally parked vehicles
+3. Matches cars to parking spots
+4. Detects double parking violations</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)"><em>numpy.ndarray</em></a>) – Input image</p></li>
+<li><p><strong>car_boxes</strong> (<em>List</em>) – List of vehicle bounding boxes</p></li>
+<li><p><strong>parking_data_path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to parking spot data JSON file</p></li>
+<li><p><strong>camera_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><em>int</em></a>) – Camera ID</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple containing:</dt><dd><ul class="simple">
+<li><p>Annotated image</p></li>
+<li><p>Parking analysis results</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.2)">numpy.ndarray</a>, Dict]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="detection_engine.detect_vehicles">
+<span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">detect_vehicles</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#detection_engine.detect_vehicles" title="Link to this definition"></a></dt>
+<dd><p>Flask route to handle vehicle detection requests.</p>
+<p>Accepts an uploaded image file, processes it for vehicle detection and
+parking analysis, and returns the results as JSON.</p>
+<dl class="simple">
+<dt>Request Parameters:</dt><dd><ul class="simple">
+<li><p>image: Image file to process</p></li>
+<li><p>parking_data_path (optional): Path to parking spot data JSON file</p></li>
+<li><p>regions (optional): Comma-separated list of license plate region codes</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>JSON response with detection results or error message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="detection_engine.get_parking_spots">
+<span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">get_parking_spots</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#detection_engine.get_parking_spots" title="Link to this definition"></a></dt>
+<dd><p>Flask route to retrieve parking spot data.</p>
+<p>Returns parking spot information for a specific camera.</p>
+<dl class="simple">
+<dt>Query Parameters:</dt><dd><ul class="simple">
+<li><p>parking_data_path: Path to parking spot data JSON file</p></li>
+<li><p>camera_id: Camera ID to filter spots</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>JSON response with parking spot data or error message</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="detection_engine.serve_static">
+<span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">serve_static</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#detection_engine.serve_static" title="Link to this definition"></a></dt>
+<dd><p>Flask route to serve static files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to the static file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Flask response with the requested file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="detection_engine.run_standalone">
+<span class="sig-prename descclassname"><span class="pre">detection_engine.</span></span><span class="sig-name descname"><span class="pre">run_standalone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/detection_engine.html#run_standalone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#detection_engine.run_standalone" title="Link to this definition"></a></dt>
+<dd><p>Run the vehicle detection system as a standalone script.</p>
+<p>Parses command line arguments and processes a single image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Detection results</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to Vehicle Detection System’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="merge_results.html" class="btn btn-neutral float-right" title="Merge Results" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Mohannad Alhmoud, Massa Al-Qamhawi, Dania Gharbieh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

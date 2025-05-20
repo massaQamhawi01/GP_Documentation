@@ -1,0 +1,724 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>merge_results &mdash; CampuSpot 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CampuSpot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules/detection_engine.html">Detection Engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/merge_results.html">Merge Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/server.html">Server</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CampuSpot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">merge_results</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for merge_results</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">detection_engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">VehicleDetector</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> [</span><span class="si">%(levelname)s</span><span class="s2">] </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">handlers</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TwoViewAnalyzer">
+<a class="viewcode-back" href="../modules/merge_results.html#merge_results.TwoViewAnalyzer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TwoViewAnalyzer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Analyzes and merges vehicle detection results from two camera views.</span>
+<span class="sd">    </span>
+<span class="sd">    This class processes pairs of images from different camera angles showing</span>
+<span class="sd">    the same parking area, merges the detection results, and identifies various</span>
+<span class="sd">    parking violations by combining information from both views.</span>
+<span class="sd">    </span>
+<span class="sd">    The merged results provide a more complete and accurate representation of</span>
+<span class="sd">    the parking area by eliminating duplicates and resolving conflicts between</span>
+<span class="sd">    the two views.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        detector (VehicleDetector): Instance of the vehicle detector used for processing images</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the TwoViewAnalyzer with a VehicleDetector instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">detector</span> <span class="o">=</span> <span class="n">VehicleDetector</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TwoViewAnalyzer.process_pair">
+<a class="viewcode-back" href="../modules/merge_results.html#merge_results.TwoViewAnalyzer.process_pair">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">process_pair</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span>
+            <span class="n">img1_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">img2_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+            <span class="n">parking_data_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">regions</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;jo&quot;</span><span class="p">,),</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Process a pair of images from different camera angles and merge the results.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            img1_path (str): Path to the first camera view image</span>
+<span class="sd">            img2_path (str): Path to the second camera view image</span>
+<span class="sd">            parking_data_path (Optional[str], optional): Path to parking spot data JSON file.</span>
+<span class="sd">                Defaults to None.</span>
+<span class="sd">            regions (Tuple[str, ...], optional): License plate region codes.</span>
+<span class="sd">                Defaults to (&quot;jo&quot;,) for Jordan.</span>
+<span class="sd">                </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]: Merged detection results containing:</span>
+<span class="sd">                - Vehicle information</span>
+<span class="sd">                - Parking analysis including matched spots, violations, etc.</span>
+<span class="sd">                - Output image paths</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">r1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">process_image</span><span class="p">(</span><span class="n">img1_path</span><span class="p">,</span> <span class="n">parking_data_path</span><span class="p">,</span> <span class="n">regions</span><span class="p">)</span>
+        <span class="n">r2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">process_image</span><span class="p">(</span><span class="n">img2_path</span><span class="p">,</span> <span class="n">parking_data_path</span><span class="p">,</span> <span class="n">regions</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_pair_results</span><span class="p">(</span><span class="n">r1</span><span class="p">,</span> <span class="n">r2</span><span class="p">)</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_spot_map</span><span class="p">(</span><span class="n">res</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a map of vehicle indices to their matched parking spot IDs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            res (Dict[str, Any]): Detection results from a single camera view</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[int, int]: Mapping from vehicle index to parking spot ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="n">m</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]:</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parking_analysis&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;matches&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="p">}</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_fill_missing_plates</span><span class="p">(</span>
+            <span class="n">violations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">vehicles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add license plate information to violation entries that are missing it.</span>
+<span class="sd">        </span>
+<span class="sd">        Searches through the vehicles list to find matching license plates for</span>
+<span class="sd">        violation entries that don&#39;t have license plate information.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            violations (List[Dict[str, Any]]): List of violation entries</span>
+<span class="sd">            vehicles (List[Dict[str, Any]]): List of detected vehicles with their information</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">id2plate</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]:</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">violations</span><span class="p">:</span>
+            <span class="n">lp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lp</span> <span class="ow">and</span> <span class="n">lp</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">vid</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">vid</span> <span class="ow">in</span> <span class="n">id2plate</span><span class="p">:</span>
+                <span class="n">src</span> <span class="o">=</span> <span class="n">id2plate</span><span class="p">[</span><span class="n">vid</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s2">&quot;plate&quot;</span><span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                        <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="n">src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span>
+                    <span class="p">}</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">src</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_plate</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract the license plate text from a vehicle dictionary.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            v (Dict[str, Any]): Vehicle information dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: License plate text in uppercase, or empty string if not available</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_responsible</span><span class="p">(</span><span class="n">camera_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">spot_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a camera is responsible for analyzing a specific parking spot.</span>
+<span class="sd">        </span>
+<span class="sd">        This helps avoid duplicate analysis by assigning each spot to a specific camera:</span>
+<span class="sd">        - Camera 1 handles even-numbered spots</span>
+<span class="sd">        - Camera 2 handles odd-numbered spots</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            camera_id (int): Camera identifier (1 or 2)</span>
+<span class="sd">            spot_id (Optional[int]): Parking spot ID</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the camera is responsible for analyzing the spot, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">spot_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">spot_id</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">camera_id</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
+                <span class="n">spot_id</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">camera_id</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="p">)</span>
+
+<div class="viewcode-block" id="TwoViewAnalyzer.detect_vehicles_missing_permit">
+<a class="viewcode-back" href="../modules/merge_results.html#merge_results.TwoViewAnalyzer.detect_vehicles_missing_permit">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_vehicles_missing_permit</span><span class="p">(</span>
+            <span class="n">vehicles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+            <span class="n">allowed_plates</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+            <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detect vehicles whose license plates are not in the allowed permit list.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            vehicles (List[Dict[str, Any]]): List of detected vehicles</span>
+<span class="sd">            allowed_plates (Set[str]): Set of allowed license plate numbers</span>
+<span class="sd">            reason (str): Violation reason (e.g., &quot;Unauthorized vehicle&quot; or &quot;Non faculty&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Dict[str, Any]]: List of vehicles without valid permits</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span><span class="p">:</span>
+            <span class="n">plate_info</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+            <span class="n">plate_txt</span> <span class="o">=</span> <span class="p">(</span><span class="n">plate_info</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">plate_txt</span> <span class="ow">and</span> <span class="n">plate_txt</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_plates</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="p">{</span>
+                        <span class="s2">&quot;car_idx&quot;</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;car_box&quot;</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;box&quot;</span><span class="p">],</span>
+                        <span class="s2">&quot;license_plate&quot;</span><span class="p">:</span> <span class="n">plate_info</span><span class="p">,</span>
+                        <span class="s2">&quot;reason&quot;</span><span class="p">:</span> <span class="n">reason</span><span class="p">,</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_assign_unique_car_ids</span><span class="p">(</span>
+            <span class="n">vehicles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">matches</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assign unique and consistent carIDs to vehicles.</span>
+<span class="sd">        </span>
+<span class="sd">        Uses license plates and parking spot information to ensure that</span>
+<span class="sd">        the same vehicle gets the same ID across different frames and views.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            vehicles (List[Dict[str, Any]]): List of detected vehicles</span>
+<span class="sd">            matches (List[Dict[str, Any]]): List of vehicle-to-spot matches</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">id_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">lp_to_id</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">spot_to_id</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">idx_to_spot</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]:</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span>
+
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span><span class="p">:</span>
+            <span class="n">lp_txt</span> <span class="o">=</span> <span class="n">TwoViewAnalyzer</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="n">spot</span> <span class="o">=</span> <span class="n">idx_to_spot</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+
+            <span class="k">if</span> <span class="n">lp_txt</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">lp_txt</span> <span class="ow">in</span> <span class="n">lp_to_id</span><span class="p">:</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lp_to_id</span><span class="p">[</span><span class="n">lp_txt</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CAR-</span><span class="si">{</span><span class="n">id_counter</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">lp_to_id</span><span class="p">[</span><span class="n">lp_txt</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span>
+                    <span class="n">id_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">spot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">spot</span> <span class="ow">in</span> <span class="n">spot_to_id</span><span class="p">:</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">spot_to_id</span><span class="p">[</span><span class="n">spot</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CAR-</span><span class="si">{</span><span class="n">id_counter</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="n">spot_to_id</span><span class="p">[</span><span class="n">spot</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span>
+                    <span class="n">id_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">v</span><span class="p">[</span><span class="s2">&quot;carID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;CAR-</span><span class="si">{</span><span class="n">id_counter</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">id_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_deduplicate_violations</span><span class="p">(</span><span class="n">violations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove duplicate violation entries.</span>
+<span class="sd">        </span>
+<span class="sd">        Prioritizes entries with license plate information and ensures that</span>
+<span class="sd">        each unique license plate or vehicle ID appears only once in the result.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            violations (List[Dict[str, Any]]): List of violation entries</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List[Dict[str, Any]]: Deduplicated list of violations</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seen_lp</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">seen_idx</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">violations</span><span class="p">:</span>
+            <span class="n">lp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">lp_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="n">lp</span><span class="p">:</span>
+                <span class="n">lp_text</span> <span class="o">=</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">lp_text</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">lp_text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_lp</span><span class="p">:</span>
+                    <span class="n">seen_lp</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lp_text</span><span class="p">)</span>
+                    <span class="n">seen_idx</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">))</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">violations</span><span class="p">:</span>
+            <span class="n">lp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">lp_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">lp</span><span class="p">:</span>
+                <span class="n">lp_text</span> <span class="o">=</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">lp_text</span> <span class="ow">and</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_idx</span><span class="p">:</span>
+                    <span class="n">seen_idx</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">))</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_merge_pair_results</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">r1</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">r2</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merge detection results from two camera views into a single comprehensive result.</span>
+<span class="sd">        </span>
+<span class="sd">        This method combines vehicle information, parking spot assignments, and violation</span>
+<span class="sd">        detections from two different camera angles, resolving conflicts and eliminating</span>
+<span class="sd">        duplicates to produce a unified result.</span>
+<span class="sd">        </span>
+<span class="sd">        The merging process includes:</span>
+<span class="sd">        1. Selecting vehicles based on camera responsibilities</span>
+<span class="sd">        2. Combining vehicle information using the best data from each view</span>
+<span class="sd">        3. Merging and deduplicating various types of violations</span>
+<span class="sd">        4. Handling conflicts between different violation types</span>
+<span class="sd">        5. Computing final statistics about parking spots</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            r1 (Dict[str, Any]): Detection results from the first camera</span>
+<span class="sd">            r2 (Dict[str, Any]): Detection results from the second camera</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, Any]: Merged detection results containing:</span>
+<span class="sd">                - Combined vehicle information</span>
+<span class="sd">                - Comprehensive parking analysis</span>
+<span class="sd">                - Paths to the output images</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cam1</span><span class="p">,</span> <span class="n">cam2</span> <span class="o">=</span> <span class="n">r1</span><span class="p">[</span><span class="s2">&quot;camera_id&quot;</span><span class="p">],</span> <span class="n">r2</span><span class="p">[</span><span class="s2">&quot;camera_id&quot;</span><span class="p">]</span>
+        <span class="n">s1</span><span class="p">,</span> <span class="n">s2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spot_map</span><span class="p">(</span><span class="n">r1</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_spot_map</span><span class="p">(</span><span class="n">r2</span><span class="p">)</span>
+
+        <span class="n">vehicles_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">accept</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">cam</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">spot_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_responsible</span><span class="p">(</span><span class="n">cam</span><span class="p">,</span> <span class="n">spot_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]))</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">vkey</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">spot_map</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Generate a unique key for a vehicle based on license plate, spot, or box.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                str: Unique identifier for the vehicle</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">lp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">lp</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;LP:</span><span class="si">{</span><span class="n">lp</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">spot</span> <span class="o">=</span> <span class="n">spot_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">spot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;SPOT:</span><span class="si">{</span><span class="n">spot</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;box&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">()</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;BOX:</span><span class="si">{</span><span class="nb">tuple</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">x</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">10</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_better_plate</span><span class="p">(</span><span class="n">old</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">],</span> <span class="n">new</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">dict</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Determine which license plate information is better.</span>
+<span class="sd">            </span>
+<span class="sd">            Compares confidence scores to select the better plate.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                Optional[dict]: The better license plate information or None</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">new</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">old</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">old</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">new</span>
+            <span class="n">score_old</span> <span class="o">=</span> <span class="n">old</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="n">old</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="n">score_new</span> <span class="o">=</span> <span class="n">new</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="n">new</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">new</span> <span class="k">if</span> <span class="n">score_new</span> <span class="o">&gt;</span> <span class="n">score_old</span> <span class="k">else</span> <span class="n">old</span>
+
+        <span class="c1"># Merge vehicle information from both cameras</span>
+        <span class="k">for</span> <span class="n">res</span><span class="p">,</span> <span class="n">cam</span><span class="p">,</span> <span class="n">smap</span> <span class="ow">in</span> <span class="p">((</span><span class="n">r1</span><span class="p">,</span> <span class="n">cam1</span><span class="p">,</span> <span class="n">s1</span><span class="p">),</span> <span class="p">(</span><span class="n">r2</span><span class="p">,</span> <span class="n">cam2</span><span class="p">,</span> <span class="n">s2</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">res</span><span class="p">[</span><span class="s2">&quot;vehicles&quot;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">accept</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">cam</span><span class="p">,</span> <span class="n">smap</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">vkey</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">smap</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vehicles_map</span><span class="p">:</span>
+                    <span class="n">vehicles_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">tgt</span> <span class="o">=</span> <span class="n">vehicles_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+                    <span class="n">tgt</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_better_plate</span><span class="p">(</span>
+                        <span class="n">tgt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">),</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">tgt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
+                        <span class="n">tgt</span><span class="p">[</span><span class="s2">&quot;confidence&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;confidence&quot;</span><span class="p">]</span>
+                        <span class="n">tgt</span><span class="p">[</span><span class="s2">&quot;box&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;box&quot;</span><span class="p">]</span>
+
+                    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;distance&quot;</span><span class="p">,</span> <span class="mf">1e9</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">tgt</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;distance&quot;</span><span class="p">,</span> <span class="mf">1e9</span><span class="p">):</span>
+                        <span class="n">tgt</span><span class="p">[</span><span class="s2">&quot;distance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;distance&quot;</span><span class="p">]</span>
+
+        <span class="n">vehicles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">vehicles_map</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">keep</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">cam</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Filter a sequence to keep only items that the camera is responsible for.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                list: Filtered sequence</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">seq</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_responsible</span><span class="p">(</span><span class="n">cam</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">))]</span>
+
+        <span class="n">pa1</span><span class="p">,</span> <span class="n">pa2</span> <span class="o">=</span> <span class="n">r1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parking_analysis&quot;</span><span class="p">,</span> <span class="p">{}),</span> <span class="n">r2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;parking_analysis&quot;</span><span class="p">,</span> <span class="p">{})</span>
+
+        <span class="c1"># Merge double parking violations</span>
+        <span class="n">doubles</span> <span class="o">=</span> <span class="p">(</span><span class="n">pa1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;double_parking&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[])</span> <span class="o">+</span> <span class="p">(</span><span class="n">pa2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;double_parking&quot;</span><span class="p">,</span> <span class="p">[])</span> <span class="ow">or</span> <span class="p">[])</span>
+        <span class="n">doubles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">doubles</span><span class="p">)</span>
+
+        <span class="n">double_parked_plates</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">double_parked_spots</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">dp</span> <span class="ow">in</span> <span class="n">doubles</span><span class="p">:</span>
+            <span class="n">lp</span> <span class="o">=</span> <span class="n">dp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="n">plate_txt</span> <span class="o">=</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">plate_txt</span><span class="p">:</span>
+                <span class="n">double_parked_plates</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">plate_txt</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;spot_id&quot;</span> <span class="ow">in</span> <span class="n">dp</span><span class="p">:</span>
+                <span class="n">double_parked_spots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dp</span><span class="p">[</span><span class="s2">&quot;spot_id&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s2">&quot;neighbor_id&quot;</span> <span class="ow">in</span> <span class="n">dp</span><span class="p">:</span>
+                <span class="n">double_parked_spots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dp</span><span class="p">[</span><span class="s2">&quot;neighbor_id&quot;</span><span class="p">])</span>
+
+        <span class="c1"># Merge vehicle-to-spot matches and filter out double-parked vehicles</span>
+        <span class="n">all_matches</span> <span class="o">=</span> <span class="n">keep</span><span class="p">(</span><span class="n">pa1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;matches&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">cam1</span><span class="p">,</span> <span class="s2">&quot;matched_spot_id&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">keep</span><span class="p">(</span><span class="n">pa2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;matches&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">cam2</span><span class="p">,</span>
+                                                                                   <span class="s2">&quot;matched_spot_id&quot;</span><span class="p">)</span>
+        <span class="n">filtered_matches</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">all_matches</span><span class="p">:</span>
+            <span class="n">spot_id</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">spot_id</span> <span class="ow">in</span> <span class="n">double_parked_spots</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">lp</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="n">plate_txt</span> <span class="o">=</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">plate_txt</span> <span class="ow">and</span> <span class="n">plate_txt</span> <span class="ow">in</span> <span class="n">double_parked_plates</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">filtered_matches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">match</span><span class="p">)</span>
+
+        <span class="n">matches</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="n">filtered_matches</span><span class="p">,</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">m</span><span class="p">:</span> <span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;score&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Ensure each spot is only assigned once</span>
+        <span class="n">seen_spots</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span> <span class="k">if</span>
+                   <span class="ow">not</span> <span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">seen_spots</span> <span class="ow">or</span> <span class="n">seen_spots</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]))]</span>
+
+        <span class="c1"># Merge illegal parking violations</span>
+        <span class="n">illegal</span> <span class="o">=</span> <span class="n">keep</span><span class="p">(</span><span class="n">pa1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;illegal_cars&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">cam1</span><span class="p">,</span> <span class="s2">&quot;spot_id&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="n">keep</span><span class="p">(</span><span class="n">pa2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;illegal_cars&quot;</span><span class="p">,</span> <span class="p">[]),</span> <span class="n">cam2</span><span class="p">,</span>
+                                                                            <span class="s2">&quot;spot_id&quot;</span><span class="p">)</span>
+        <span class="n">illegal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">illegal</span><span class="p">)</span>
+
+        <span class="c1"># Remap vehicle indices to the merged list</span>
+        <span class="n">old_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span><span class="p">]</span>
+        <span class="n">lp_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span><span class="p">]</span>
+        <span class="n">old2new</span> <span class="o">=</span> <span class="p">{(</span><span class="n">old_ids</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">lp_list</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">vehicles</span><span class="p">))}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vehicles</span><span class="p">):</span>
+            <span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">re_map</span><span class="p">(</span><span class="n">arr</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Remap vehicle indices in violation entries to the merged vehicle list.</span>
+<span class="sd">            </span>
+<span class="sd">            Also updates license plate information if missing.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">arr</span><span class="p">:</span>
+                <span class="n">car_idx</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">car_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="n">lp</span> <span class="o">=</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+                <span class="n">txt</span> <span class="o">=</span> <span class="p">(</span><span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;plate&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+
+                <span class="n">new_idx</span> <span class="o">=</span> <span class="kc">None</span>
+
+                <span class="k">if</span> <span class="n">txt</span><span class="p">:</span>
+                    <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">car_idx</span><span class="p">,</span> <span class="n">txt</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">old2new</span><span class="p">:</span>
+                        <span class="n">new_idx</span> <span class="o">=</span> <span class="n">old2new</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">new_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">item</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_idx</span>
+                    <span class="c1"># keep data consistent</span>
+                    <span class="n">item</span><span class="p">[</span><span class="s2">&quot;car_box&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vehicles</span><span class="p">[</span><span class="n">new_idx</span><span class="p">][</span><span class="s2">&quot;box&quot;</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">txt</span><span class="p">:</span>
+                        <span class="n">item</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vehicles</span><span class="p">[</span><span class="n">new_idx</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">new_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">item</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_idx</span>
+
+                    <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">txt</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_idx</span><span class="p">:</span>
+                                <span class="n">vehicle_lp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;license_plate&quot;</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="n">vehicle_lp</span><span class="p">:</span>
+                                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vehicle_lp</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                                        <span class="n">item</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                                            <span class="s2">&quot;plate&quot;</span><span class="p">:</span> <span class="n">vehicle_lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+                                            <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="n">vehicle_lp</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;confidence&quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+                                        <span class="p">}</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="n">item</span><span class="p">[</span><span class="s2">&quot;license_plate&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vehicle_lp</span>
+                                <span class="k">break</span>
+
+        <span class="k">for</span> <span class="n">arr</span> <span class="ow">in</span> <span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">illegal</span><span class="p">,</span> <span class="n">doubles</span><span class="p">):</span>
+            <span class="n">re_map</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_assign_unique_car_ids</span><span class="p">(</span><span class="n">vehicles</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span>
+
+        <span class="n">spot_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]:</span> <span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span>
+
+        <span class="c1"># Detect authorization violations</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="p">,</span> <span class="s1">&#39;detect_firestore_violations&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">firestore_enabled</span><span class="p">:</span>
+
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using Firestore for violation detection.&quot;</span><span class="p">)</span>
+                <span class="n">unauthorized</span><span class="p">,</span> <span class="n">non_faculty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detector</span><span class="o">.</span><span class="n">detect_firestore_violations</span><span class="p">(</span><span class="n">vehicles</span><span class="p">,</span> <span class="n">spot_map</span><span class="p">)</span>
+
+                <span class="n">unauthorized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">unauthorized</span><span class="p">)</span>
+                <span class="n">non_faculty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">non_faculty</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Firestore not available&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Firestore violation detection failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">Falling back to file-based approach&quot;</span><span class="p">)</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">_load</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">                </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">                Load a set of license plates from a text file.</span>
+<span class="sd">                </span>
+<span class="sd">                Returns:</span>
+<span class="sd">                    Set[str]: Set of license plate numbers in uppercase</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="n">ln</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">for</span> <span class="n">ln</span> <span class="ow">in</span> <span class="n">f</span> <span class="k">if</span> <span class="n">ln</span><span class="o">.</span><span class="n">strip</span><span class="p">()}</span>
+
+            <span class="n">general_permits</span> <span class="o">=</span> <span class="n">_load</span><span class="p">(</span><span class="s2">&quot;authorized_plates.txt&quot;</span><span class="p">)</span>
+            <span class="n">faculty_permits</span> <span class="o">=</span> <span class="n">_load</span><span class="p">(</span><span class="s2">&quot;faculty_plates.txt&quot;</span><span class="p">)</span>
+            <span class="n">faculty_only</span> <span class="o">=</span> <span class="p">{</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">}</span>
+
+            <span class="n">unauthorized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect_vehicles_missing_permit</span><span class="p">(</span>
+                <span class="n">vehicles</span><span class="p">,</span> <span class="n">general_permits</span><span class="p">,</span> <span class="s2">&quot;Unauthorized vehicle&quot;</span>
+            <span class="p">)</span>
+            <span class="n">unauthorized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">unauthorized</span><span class="p">)</span>
+
+            <span class="n">vehicles_in_faculty</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vehicles</span> <span class="k">if</span> <span class="n">spot_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">faculty_only</span>
+            <span class="p">]</span>
+            <span class="n">non_faculty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect_vehicles_missing_permit</span><span class="p">(</span>
+                <span class="n">vehicles_in_faculty</span><span class="p">,</span>
+                <span class="n">faculty_permits</span><span class="p">,</span>
+                <span class="s2">&quot;Non faculty&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">non_faculty</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_deduplicate_violations</span><span class="p">(</span><span class="n">non_faculty</span><span class="p">)</span>
+
+        <span class="c1"># Fill in missing license plate information</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_missing_plates</span><span class="p">(</span><span class="n">doubles</span><span class="p">,</span> <span class="n">vehicles</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_missing_plates</span><span class="p">(</span><span class="n">illegal</span><span class="p">,</span> <span class="n">vehicles</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_missing_plates</span><span class="p">(</span><span class="n">unauthorized</span><span class="p">,</span> <span class="n">vehicles</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fill_missing_plates</span><span class="p">(</span><span class="n">non_faculty</span><span class="p">,</span> <span class="n">vehicles</span><span class="p">)</span>
+
+        <span class="c1"># Resolve conflicts between different violation types</span>
+        <span class="n">dp_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">doubles</span><span class="p">}</span>
+        <span class="n">dp_plates</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">doubles</span><span class="p">}</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_same_vehicle</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Check if an item refers to the same vehicle as one in the doubles list.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                bool: True if it&#39;s the same vehicle, False otherwise</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">dp_ids</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="ow">in</span> <span class="n">dp_plates</span>
+
+        <span class="n">match_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span>
+        <span class="n">match_plates</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">m</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">_in_matches</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Check if an item refers to a vehicle that&#39;s in the matches list.</span>
+<span class="sd">            </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                bool: True if it&#39;s in matches, False otherwise</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;car_idx&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="n">match_ids</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plate</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="ow">in</span> <span class="n">match_plates</span>
+
+        <span class="c1"># Remove illegal parking violations if the vehicle is properly matched</span>
+        <span class="n">illegal</span> <span class="o">=</span> <span class="p">[</span><span class="n">ic</span> <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">illegal</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_in_matches</span><span class="p">(</span><span class="n">ic</span><span class="p">)]</span>
+
+        <span class="c1"># Remove illegal parking violations if the vehicle is already marked as double-parked</span>
+        <span class="n">illegal</span> <span class="o">=</span> <span class="p">[</span><span class="n">ic</span> <span class="k">for</span> <span class="n">ic</span> <span class="ow">in</span> <span class="n">illegal</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_same_vehicle</span><span class="p">(</span><span class="n">ic</span><span class="p">)]</span>
+
+        <span class="c1"># Compute final spot statistics</span>
+        <span class="n">occ_from_matches</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">[</span><span class="s2">&quot;matched_spot_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">}</span>
+        <span class="n">occ_from_double</span> <span class="o">=</span> <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;spot_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">doubles</span><span class="p">}</span> <span class="o">|</span> \
+                          <span class="p">{</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;neighbor_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">doubles</span><span class="p">}</span>
+
+        <span class="n">raw_violations</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">occ_from_double</span>
+                <span class="o">|</span> <span class="p">{</span><span class="n">i</span><span class="p">[</span><span class="s2">&quot;spot_id&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">illegal</span> <span class="k">if</span> <span class="s2">&quot;spot_id&quot;</span> <span class="ow">in</span> <span class="n">i</span><span class="p">}</span>
+                <span class="o">|</span> <span class="p">{</span><span class="n">spot_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">unauthorized</span> <span class="k">if</span> <span class="s2">&quot;car_idx&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">}</span>
+                <span class="o">|</span> <span class="p">{</span><span class="n">spot_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">v</span><span class="p">[</span><span class="s2">&quot;car_idx&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">non_faculty</span> <span class="k">if</span> <span class="s2">&quot;car_idx&quot;</span> <span class="ow">in</span> <span class="n">v</span><span class="p">}</span>
+        <span class="p">)</span>
+
+        <span class="n">violation_spots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">raw_violations</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">occupied_spots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">occ_from_matches</span> <span class="o">|</span> <span class="n">occ_from_double</span><span class="p">)</span>
+        <span class="n">total_spots</span> <span class="o">=</span> <span class="n">pa1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;total_spots&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">pa2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;total_spots&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="mi">0</span>
+        <span class="n">free_spots</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">total_spots</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">occupied_spots</span><span class="p">))</span>
+
+        <span class="c1"># Create final parking analysis dictionary</span>
+        <span class="n">parking_analysis</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;total_spots&quot;</span><span class="p">:</span> <span class="n">total_spots</span><span class="p">,</span>
+            <span class="s2">&quot;occupied_spots&quot;</span><span class="p">:</span> <span class="n">occupied_spots</span><span class="p">,</span>
+            <span class="s2">&quot;free_spots&quot;</span><span class="p">:</span> <span class="n">free_spots</span><span class="p">,</span>
+            <span class="s2">&quot;matches&quot;</span><span class="p">:</span> <span class="n">matches</span><span class="p">,</span>
+            <span class="s2">&quot;illegal_cars&quot;</span><span class="p">:</span> <span class="n">illegal</span><span class="p">,</span>
+            <span class="s2">&quot;double_parking&quot;</span><span class="p">:</span> <span class="n">doubles</span><span class="p">,</span>
+            <span class="s2">&quot;unauthorized_vehicles&quot;</span><span class="p">:</span> <span class="n">unauthorized</span><span class="p">,</span>
+            <span class="s2">&quot;non_faculty_violation_vehicles&quot;</span><span class="p">:</span> <span class="n">non_faculty</span><span class="p">,</span>
+            <span class="s2">&quot;violation_spots&quot;</span><span class="p">:</span> <span class="n">violation_spots</span><span class="p">,</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;camera_id&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;vehicles&quot;</span><span class="p">:</span> <span class="n">vehicles</span><span class="p">,</span>
+            <span class="s2">&quot;parking_analysis&quot;</span><span class="p">:</span> <span class="n">parking_analysis</span><span class="p">,</span>
+            <span class="s2">&quot;image_pair&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">r1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_image_path&quot;</span><span class="p">),</span> <span class="n">r2</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_image_path&quot;</span><span class="p">)),</span>
+            <span class="s2">&quot;output_image_path&quot;</span><span class="p">:</span> <span class="n">r1</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;output_image_path&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Mohannad Alhmoud, Massa Al-Qamhawi, Dania Gharbieh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

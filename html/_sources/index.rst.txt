@@ -1,0 +1,17 @@
+Welcome to Vehicle Detection System's documentation!
+===================================================
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+
+   modules/detection_engine
+   modules/merge_results
+   modules/server
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

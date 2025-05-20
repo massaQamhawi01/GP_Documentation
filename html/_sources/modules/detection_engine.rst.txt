@@ -1,0 +1,7 @@
+Detection Engine
+===============
+
+.. automodule:: detection_engine
+   :members:
+   :undoc-members:
+   :show-inheritance:

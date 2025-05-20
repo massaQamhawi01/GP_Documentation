@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>server &mdash; CampuSpot 1.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=f2a433a1"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CampuSpot
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules/detection_engine.html">Detection Engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/merge_results.html">Merge Results</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/server.html">Server</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CampuSpot</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">server</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for server</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Flask server for vehicle detection and parking analysis system.</span>
+
+<span class="sd">This module provides a web service that processes parking area images from two camera views,</span>
+<span class="sd">detects vehicles, analyzes parking spots, and identifies various parking violations.</span>
+<span class="sd">It exposes several API endpoints for retrieving detection results and parking information.</span>
+
+<span class="sd">The server runs a background thread that continuously processes image pairs from two</span>
+<span class="sd">folders at regular intervals, making the latest results available through the API.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Flask</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">jsonify</span><span class="p">,</span> <span class="n">send_from_directory</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">flask_cors</span><span class="w"> </span><span class="kn">import</span> <span class="n">CORS</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">merge_results</span><span class="w"> </span><span class="kn">import</span> <span class="n">TwoViewAnalyzer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">detection_engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">VehicleDetector</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
+    <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> [</span><span class="si">%(levelname)s</span><span class="s2">] </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">handlers</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">()</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Folder paths for the camera images</span>
+<span class="n">VIEW1_FOLDER</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;..\testingSingleImages\images1&#39;</span>
+<span class="n">VIEW2_FOLDER</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;..\testingSingleImages\images2&#39;</span>
+
+<span class="c1"># Path to the parking spot labels file</span>
+<span class="n">PARKING_DATA_PATH</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;oldLotsCoordinates.json&#39;</span>
+
+<span class="c1"># Region code for license plate recognition</span>
+<span class="n">REGIONS</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;jo&#39;</span><span class="p">]</span>  <span class="c1"># Jordan region code</span>
+
+<span class="c1"># Time in seconds between processing iterations</span>
+<span class="n">PROCESSING_INTERVAL</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">60</span>
+
+<span class="c1"># Allowed image file extensions</span>
+<span class="n">ALLOWED_EXT</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;.jpg&#39;</span><span class="p">,</span> <span class="s1">&#39;.jpeg&#39;</span><span class="p">,</span> <span class="s1">&#39;.png&#39;</span><span class="p">)</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">Flask</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">CORS</span><span class="p">(</span><span class="n">app</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">pair_analyzer</span> <span class="o">=</span> <span class="n">TwoViewAnalyzer</span><span class="p">()</span>
+    <span class="n">single_detector</span> <span class="o">=</span> <span class="n">VehicleDetector</span><span class="p">()</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Vehicle detection system was initialized successfully&quot;</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error initializing vehicle detection: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="se">\n</span><span class="s2">The system will continue but may have limited functionality&quot;</span><span class="p">)</span>
+    <span class="n">pair_analyzer</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">single_detector</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># Dictionary to store the latest processed results</span>
+<span class="n">latest_results</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">latest_results_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+<span class="c1"># List of image file pairs from the two camera views</span>
+<span class="n">image_pairs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">pair_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">processing_thread_running</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="make_serializable">
+<a class="viewcode-back" href="../modules/server.html#server.make_serializable">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">make_serializable</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert complex objects to JSON-serializable types.</span>
+<span class="sd">    </span>
+<span class="sd">    Handles PyTorch tensors, NumPy arrays, and various numeric types,</span>
+<span class="sd">    converting them to standard Python types that can be serialized to JSON.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        obj: Object to convert</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        JSON-serializable version of the input object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">make_serializable</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">make_serializable</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">obj</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">obj</span></div>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_scan_for_pairs</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Scan the two camera folders for matching image pairs.</span>
+<span class="sd">    </span>
+<span class="sd">    Looks for image files with the same base name in both camera view </span>
+<span class="sd">    folders and builds a list of file path pairs. Creates the view folders</span>
+<span class="sd">    if they don&#39;t exist.</span>
+<span class="sd">    </span>
+<span class="sd">    Updates the global `image_pairs` list with the found pairs.</span>
+<span class="sd">    </span>
+<span class="sd">    Raises:</span>
+<span class="sd">        Exception: If there&#39;s an error scanning the folders</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">image_pairs</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">VIEW1_FOLDER</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">VIEW2_FOLDER</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="n">f1_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">VIEW1_FOLDER</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">ALLOWED_EXT</span><span class="p">))</span>
+        <span class="n">f2_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">VIEW2_FOLDER</span><span class="p">)</span> <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">ALLOWED_EXT</span><span class="p">))</span>
+
+        <span class="n">f1</span> <span class="o">=</span> <span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VIEW1_FOLDER</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">f1_files</span><span class="p">}</span>
+        <span class="n">f2</span> <span class="o">=</span> <span class="p">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">VIEW2_FOLDER</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">f2_files</span><span class="p">}</span>
+
+        <span class="n">common</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">f1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">f2</span><span class="p">))</span>
+        <span class="n">image_pairs</span> <span class="o">=</span> <span class="p">[(</span><span class="n">f1</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">f2</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">common</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[SCAN] </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2"> matching pairs found, sorted by name.&quot;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[SCAN] Error scanning for pairs: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_process_pairs_thread</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Background thread function for continuous image pair processing.</span>
+<span class="sd">    </span>
+<span class="sd">    Runs in an infinite loop as long as `processing_thread_running` is True.</span>
+<span class="sd">    In each iteration:</span>
+<span class="sd">    1. Scans for image pairs if none are available</span>
+<span class="sd">    2. Processes the next image pair in the list</span>
+<span class="sd">    3. Updates the global `latest_results` with the processing results</span>
+<span class="sd">    4. Waits for the specified interval before the next iteration</span>
+<span class="sd">    </span>
+<span class="sd">    Updates the global variables:</span>
+<span class="sd">    - pair_index: Current position in the image_pairs list</span>
+<span class="sd">    - latest_results: Dictionary containing the most recent detection results</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">pair_index</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[THREAD] Two‑view processing thread launched.&quot;</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="n">processing_thread_running</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">image_pairs</span><span class="p">:</span>
+            <span class="n">_scan_for_pairs</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">image_pairs</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[THREAD] No pairs yet → sleeping for 10 seconds.&quot;</span><span class="p">)</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+        <span class="k">if</span> <span class="n">pair_index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_pairs</span><span class="p">):</span>
+            <span class="n">pair_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">image_pairs</span><span class="p">[</span><span class="n">pair_index</span><span class="p">]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[THREAD] </span><span class="si">{</span><span class="n">pair_index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">image_pairs</span><span class="p">)</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">v1</span><span class="p">)</span><span class="si">}</span><span class="s2">  +  </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">v2</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">pair_analyzer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;[THREAD] Error: pair_analyzer not initialized&quot;</span><span class="p">)</span>
+                <span class="n">pair_index</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">PROCESSING_INTERVAL</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">res</span> <span class="o">=</span> <span class="n">pair_analyzer</span><span class="o">.</span><span class="n">process_pair</span><span class="p">(</span>
+                <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span>
+                <span class="n">parking_data_path</span><span class="o">=</span><span class="n">PARKING_DATA_PATH</span><span class="p">,</span>
+                <span class="n">regions</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span><span class="n">REGIONS</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">with</span> <span class="n">latest_results_lock</span><span class="p">:</span>
+                <span class="n">latest_results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">make_serializable</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[THREAD] Successfully processed pair&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[THREAD] ERROR while processing pair: </span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+
+        <span class="n">pair_index</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">PROCESSING_INTERVAL</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_start_processing_thread</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Start the background thread for processing image pairs.</span>
+<span class="sd">    </span>
+<span class="sd">    Creates and starts a daemon thread that runs the `_process_pairs_thread`</span>
+<span class="sd">    function if it&#39;s not already running and the pair analyzer is available.</span>
+<span class="sd">    </span>
+<span class="sd">    Updates the global variable:</span>
+<span class="sd">    - processing_thread_running: Set to True if the thread is started</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">processing_thread_running</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">processing_thread_running</span> <span class="ow">and</span> <span class="n">pair_analyzer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">processing_thread_running</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+            <span class="n">target</span><span class="o">=</span><span class="n">_process_pairs_thread</span><span class="p">,</span>
+            <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[THREAD] Background processing thread started&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;[THREAD] Warning: Cannot start processing thread (pair_analyzer not available)&quot;</span><span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/latest_results&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_latest_results</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint that returns the latest detection results.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Flask response: JSON containing the latest processing results,</span>
+<span class="sd">        or an error message if no results are available yet.</span>
+<span class="sd">        </span>
+<span class="sd">    HTTP Status Codes:</span>
+<span class="sd">        200: Success</span>
+<span class="sd">        404: No results available yet</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">latest_results_lock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">latest_results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">latest_results</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;No results yet&quot;</span><span class="p">}),</span> <span class="mi">404</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/status&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_status</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint that returns the current status of the detection system.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Flask response: JSON containing status information including:</span>
+<span class="sd">        - Whether the processing thread is running</span>
+<span class="sd">        - Number of image pairs in cache</span>
+<span class="sd">        - Current pair index being processed</span>
+<span class="sd">        - Whether results are available</span>
+<span class="sd">        - Firestore database connection status</span>
+<span class="sd">        - Availability of the detector and pair analyzer</span>
+<span class="sd">        </span>
+<span class="sd">    HTTP Status Codes:</span>
+<span class="sd">        200: Success</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">firestore_status</span> <span class="o">=</span> <span class="s2">&quot;Not available&quot;</span>
+    <span class="k">if</span> <span class="n">single_detector</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">single_detector</span><span class="p">,</span> <span class="s1">&#39;firestore_enabled&#39;</span><span class="p">):</span>
+        <span class="n">firestore_status</span> <span class="o">=</span> <span class="s2">&quot;Enabled&quot;</span> <span class="k">if</span> <span class="n">single_detector</span><span class="o">.</span><span class="n">firestore_enabled</span> <span class="k">else</span> <span class="s2">&quot;Disabled&quot;</span>
+
+    <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span>
+        <span class="s2">&quot;running&quot;</span><span class="p">:</span> <span class="n">processing_thread_running</span><span class="p">,</span>
+        <span class="s2">&quot;pairs_in_cache&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">image_pairs</span><span class="p">),</span>
+        <span class="s2">&quot;current_pair_index&quot;</span><span class="p">:</span> <span class="n">pair_index</span><span class="p">,</span>
+        <span class="s2">&quot;has_result&quot;</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">latest_results</span><span class="p">),</span>
+        <span class="s2">&quot;firestore_status&quot;</span><span class="p">:</span> <span class="n">firestore_status</span><span class="p">,</span>
+        <span class="s2">&quot;detector_available&quot;</span><span class="p">:</span> <span class="n">single_detector</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;pair_analyzer_available&quot;</span><span class="p">:</span> <span class="n">pair_analyzer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">})</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/detect&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;POST&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_detect_single</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint for processing a single uploaded image.</span>
+<span class="sd">    </span>
+<span class="sd">    Accepts an image file upload, processes it using the single detector,</span>
+<span class="sd">    and returns the detection results.</span>
+<span class="sd">    </span>
+<span class="sd">    Required form data:</span>
+<span class="sd">        - image: Image file to process</span>
+<span class="sd">        </span>
+<span class="sd">    Optional form data:</span>
+<span class="sd">        - parking_data_path: Path to parking spot data JSON file</span>
+<span class="sd">        - regions: Comma-separated list of license plate region codes</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Flask response: JSON containing the detection results or error message</span>
+<span class="sd">        </span>
+<span class="sd">    HTTP Status Codes:</span>
+<span class="sd">        200: Success</span>
+<span class="sd">        400: No image file provided</span>
+<span class="sd">        500: Error during processing</span>
+<span class="sd">        503: Vehicle detector not available</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">single_detector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Vehicle detector not available&quot;</span><span class="p">}),</span> <span class="mi">503</span>
+
+    <span class="k">if</span> <span class="s1">&#39;image&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;No image file provided&quot;</span><span class="p">}),</span> <span class="mi">400</span>
+
+    <span class="n">tmp_img</span> <span class="o">=</span> <span class="s1">&#39;temp_upload.jpg&#39;</span>
+    <span class="n">request</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">tmp_img</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">single_detector</span><span class="o">.</span><span class="n">process_image</span><span class="p">(</span>
+            <span class="n">image_path</span><span class="o">=</span><span class="n">tmp_img</span><span class="p">,</span>
+            <span class="n">parking_data_path</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parking_data_path&#39;</span><span class="p">,</span> <span class="n">PARKING_DATA_PATH</span><span class="p">),</span>
+            <span class="n">regions</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">form</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;regions&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">REGIONS</span><span class="p">))</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">(</span><span class="n">make_serializable</span><span class="p">(</span><span class="n">res</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)}),</span> <span class="mi">500</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">tmp_img</span><span class="p">):</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">tmp_img</span><span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/spots&#39;</span><span class="p">,</span> <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;GET&#39;</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_spots</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint that returns parking spot information.</span>
+<span class="sd">    </span>
+<span class="sd">    Retrieves and formats parking spot data for a specific camera view.</span>
+<span class="sd">    </span>
+<span class="sd">    Query parameters:</span>
+<span class="sd">        camera_id (int, optional): Camera ID (default: 1)</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Flask response: JSON containing the formatted parking spot data</span>
+<span class="sd">        </span>
+<span class="sd">    HTTP Status Codes:</span>
+<span class="sd">        200: Success</span>
+<span class="sd">        500: Error retrieving or formatting spot data</span>
+<span class="sd">        503: Vehicle detector not available</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">single_detector</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Vehicle detector not available&quot;</span><span class="p">}),</span> <span class="mi">503</span>
+
+    <span class="n">camera_id</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;camera_id&#39;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">spots</span> <span class="o">=</span> <span class="n">single_detector</span><span class="o">.</span><span class="n">load_parking_spots</span><span class="p">(</span><span class="n">PARKING_DATA_PATH</span><span class="p">,</span> <span class="n">camera_id</span><span class="p">)</span>
+        <span class="n">formatted</span> <span class="o">=</span> <span class="p">[{</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">s</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;P</span><span class="si">{</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;x_center&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;x_center&#39;</span><span class="p">]),</span>
+            <span class="s2">&quot;bottom_y&quot;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;bottom_y&#39;</span><span class="p">]),</span>
+            <span class="s2">&quot;coordinates&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;coords&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+        <span class="p">}</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">spots</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;spots&quot;</span><span class="p">:</span> <span class="n">formatted</span><span class="p">})</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">jsonify</span><span class="p">({</span><span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">)}),</span> <span class="mi">500</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/static/&lt;path:filename&gt;&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_static</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint that serves static files.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        filename (str): Path to the static file</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Flask response: The requested static file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">send_from_directory</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">route</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">api_root</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    API endpoint for the root path that shows basic system information.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        str: A plain text message with basic system information and</span>
+<span class="sd">        available API endpoints.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">firestore_status</span> <span class="o">=</span> <span class="s2">&quot;Not available&quot;</span>
+    <span class="k">if</span> <span class="n">single_detector</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">single_detector</span><span class="p">,</span> <span class="s1">&#39;firestore_enabled&#39;</span><span class="p">):</span>
+        <span class="n">firestore_status</span> <span class="o">=</span> <span class="s2">&quot;Enabled&quot;</span> <span class="k">if</span> <span class="n">single_detector</span><span class="o">.</span><span class="n">firestore_enabled</span> <span class="k">else</span> <span class="s2">&quot;Disabled&quot;</span>
+
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;Security‑IT‑Parking two‑view backend alive!</span>
+
+<span class="s2">    GET /latest_results for JSON</span>
+<span class="s2">    GET /status for worker info</span>
+<span class="s2">    GET /spots for parking spot information</span>
+
+<span class="s2">    Firestore Status: </span><span class="si">{</span><span class="n">firestore_status</span><span class="si">}</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">_scan_for_pairs</span><span class="p">()</span>
+
+    <span class="n">_start_processing_thread</span><span class="p">()</span>
+
+    <span class="n">port</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;PORT&#39;</span><span class="p">,</span> <span class="mi">5000</span><span class="p">))</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting Flask server on port </span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Firestore status: </span><span class="si">{</span><span class="s1">&#39;Enabled&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">single_detector</span><span class="w"> </span><span class="ow">and</span><span class="w"> </span><span class="n">single_detector</span><span class="o">.</span><span class="n">firestore_enabled</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;Disabled&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="s1">&#39;0.0.0.0&#39;</span><span class="p">,</span> <span class="n">port</span><span class="o">=</span><span class="n">port</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">threaded</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Mohannad Alhmoud, Massa Al-Qamhawi, Dania Gharbieh.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+Merge Results
+============
+
+.. automodule:: merge_results
+   :members:
+   :undoc-members:
+   :show-inheritance:
